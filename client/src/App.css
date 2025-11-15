@@ -1,0 +1,12 @@
+:root{ --brand:#17C0C8; --navy:#0E2B37; --bg:#fbfcfd; --text:#0f1720; }
+body{ margin:0; font-family:Inter,Arial,Helvetica,sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+.mobile-shell{ display:flex; flex-direction:column; min-height:100vh; }
+.mobile-content{ padding:12px; }
+.topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px; background:var(--brand); color:white; }
+.btn{ display:inline-block; padding:10px 12px; border-radius:8px; background:var(--navy); color:white; border: none; }
+.input{ width:100%; padding:10px; margin:6px 0; border-radius:8px; border:1px solid #ddd; }
+.card{ background:white; border-radius:10px; padding:12px; box-shadow:0 4px 12px rgba(2,6,23,0.06); margin-bottom:12px; }
+.product-list{ display:flex; flex-direction:column; gap:8px; }
+.product-item{ padding:10px; border-radius:8px; background:#fff; display:flex; justify-content:space-between; align-items:center; border:1px solid #eee; }
+.footer-nav{ position:fixed; bottom:0; left:0; right:0; display:flex; background:white; border-top:1px solid #eee; }
+.nav-btn{ flex:1; padding:12px; text-align:center; }
