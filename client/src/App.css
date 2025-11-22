@@ -10,3 +10,15 @@ body{ margin:0; font-family:Inter,Arial,Helvetica,sans-serif; background:var(--b
 .product-item{ padding:10px; border-radius:8px; background:#fff; display:flex; justify-content:space-between; align-items:center; border:1px solid #eee; }
 .footer-nav{ position:fixed; bottom:0; left:0; right:0; display:flex; background:white; border-top:1px solid #eee; }
 .nav-btn{ flex:1; padding:12px; text-align:center; }
+
+/* File: client/src/App.css
+   Append these styles to the end of your existing App.css to style the admin dashboard */
+ 
+/* admin dashboard specific */
+.stat-card { padding: 12px; border-radius: 10px; box-shadow: 0 8px 20px rgba(2,6,23,0.06); background: #fff; }
+.card { background: #fff; border-radius: 10px; padding: 12px; box-shadow: 0 8px 20px rgba(2,6,23,0.04); }
+@media (max-width: 640px) {
+  /* mobile-first layout: single column cards */
+  .stat-card { padding:10px; }
+  /* the grid on Dashboard.jsx uses inline CSS grid so it will respond automatically */
+}
