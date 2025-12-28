@@ -1,7 +1,4 @@
-// ==============================
-// File: dms/server/src/routes/reports.js
-// Replace the existing reports.js with this full file
-// ==============================
+// dms/server/src/routes/reports.js
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -45,19 +42,17 @@ router.get('/dashboard', auth, tenantGuard, requireRole(['owner','admin']), asyn
 router.get('/monthly', auth, tenantGuard, requireRole(['owner','admin']), async (req, res) => {
   try {
     const tenantId = mongoose.Types.ObjectId(req.tenantId);
-    // aggregate sales by year-month
     const agg = await Transaction.aggregate([
       { $match: { tenantId, type: 'sale' } },
       { $project: { total: 1, yearMonth: { $dateToString: { format: "%Y-%m", date: "$date" } } } },
       { $group: { _id: "$yearMonth", total: { $sum: "$total" } } },
       { $sort: { _id: 1 } }
     ]);
-    // Build last 12 months array (labels YYYY-MM)
     const now = new Date();
     const months = [];
     for (let i = 11; i >= 0; --i) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = d.toISOString().slice(0,7); // YYYY-MM
+      const label = d.toISOString().slice(0,7);
       months.push(label);
     }
     const totalsMap = {};
@@ -79,6 +74,39 @@ router.get('/payment-breakdown', auth, tenantGuard, requireRole(['owner','admin'
     const labels = (agg || []).map(r => r._id || 'Unknown');
     const values = (agg || []).map(r => Math.round(r.total || 0));
     res.json({ labels, values });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// NEW: counts and revenue for today, this week, this month
+router.get('/counts', auth, tenantGuard, requireRole(['owner','admin']), async (req, res) => {
+  try {
+    const tenantId = mongoose.Types.ObjectId(req.tenantId);
+    const now = new Date();
+    // start of today (local)
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // start of week (ISO week start Monday) - compute Monday of current week
+    const day = now.getDay(); // 0 (Sun) .. 6 (Sat)
+    const diffToMonday = (day === 0 ? -6 : 1 - day); // if Sunday, go back 6 days
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+    startOfWeek.setHours(0,0,0,0);
+    // start of month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // helper aggregation
+    const buildAgg = async (startDate) => {
+      const match = { tenantId, type: 'sale', date: { $gte: startDate, $lte: now } };
+      const agg = await Transaction.aggregate([
+        { $match: match },
+        { $group: { _id: null, total: { $sum: "$total" }, count: { $sum: 1 } } }
+      ]);
+      if (!agg || agg.length === 0) return { revenue: 0, count: 0 };
+      return { revenue: Math.round(agg[0].total || 0), count: agg[0].count || 0 };
+    };
+    const [today, thisWeek, thisMonth] = await Promise.all([
+      buildAgg(startOfToday),
+      buildAgg(startOfWeek),
+      buildAgg(startOfMonth)
+    ]);
+    res.json({ today, thisWeek, thisMonth });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
