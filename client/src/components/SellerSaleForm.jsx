@@ -1,5 +1,4 @@
-// File: client/src/components/SellerSaleForm.jsx
-// Replace the previous SellerSaleForm.jsx with this updated version that uses syncQueue
+// dms/client/src/components/SellerSaleForm.jsx
 import React, { forwardRef, useImperativeHandle } from 'react';
 import apiClient from '../services/api';
 import { enqueue, startQueueProcessor, getQueue } from '../utils/syncQueue';
@@ -8,18 +7,15 @@ const SellerSaleForm = forwardRef(function SellerSaleForm(props, ref) {
   const { onSaved } = props;
   const [items, setItems] = React.useState([]);
   const [paymentMethod, setPaymentMethod] = React.useState('Mpesa');
-  const [queuedCount, setQueuedCount] = React.useState(() => getQueue().length);
+  const [queuedCount, setQueuedCount] = React.useState(0);
 
-  // expose addLine via ref for parent components
-  useImperativeHandle(ref, () => ({
-    addLine: (product) => addLine(product)
-  }));
+  useImperativeHandle(ref, () => ({ addLine: (product) => addLine(product) }));
 
   React.useEffect(() => {
-    // start queue processor once
-    startQueueProcessor({ intervalMs: 60_000 }); // optional periodic retry
-    const id = setInterval(() => setQueuedCount(getQueue().length), 2000);
-    return () => clearInterval(id);
+    startQueueProcessor({ intervalMs: 60_000 });
+    const t = setInterval(async () => { const q = await getQueue(); setQueuedCount(q.length); }, 1500);
+    (async ()=>{ const q = await getQueue(); setQueuedCount(q.length); })();
+    return () => clearInterval(t);
   }, []);
 
   const addLine = (product) => setItems(prev => [...prev, { productId: product._id, name: product.name, qty: 1, unitPrice: product.sellPrice }]);
@@ -41,21 +37,23 @@ const SellerSaleForm = forwardRef(function SellerSaleForm(props, ref) {
     };
 
     try {
-      // try online save
       await apiClient.api('/api/transactions', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
       setItems([]);
-      setQueuedCount(getQueue().length);
+      const q = await getQueue(); setQueuedCount(q.length);
       if (onSaved) onSaved();
       alert('Sale recorded');
     } catch (err) {
-      // Network errors or failed fetch -> enqueue
-      console.warn('Save failed, enqueueing for later sync', err && err.message ? err.message : err);
-      enqueue('transaction', payload);
-      setItems([]);
-      setQueuedCount(getQueue().length);
-      alert('You are offline or server unreachable — sale saved locally and will sync when online.');
-      // ensure queue processor starts (if not already)
-      try { startQueueProcessor(); } catch (e) { /* noop */ }
+      console.warn('Save failed, enqueueing', err && err.message ? err.message : err);
+      try {
+        await enqueue('transaction', payload);
+        const q = await getQueue(); setQueuedCount(q.length);
+        setItems([]);
+        alert('You are offline — sale saved locally and will sync when online.');
+        startQueueProcessor();
+      } catch (enqErr) {
+        console.error('enqueue failed', enqErr);
+        alert('Failed to save sale. Try again.');
+      }
     }
   };
 
@@ -95,9 +93,6 @@ const SellerSaleForm = forwardRef(function SellerSaleForm(props, ref) {
           <div style={{ fontWeight: 700 }}>Total: {total} TZS</div>
           <button className="btn" onClick={submit}>Complete Sale</button>
         </div>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <slot name="search"></slot>
       </div>
     </div>
   );

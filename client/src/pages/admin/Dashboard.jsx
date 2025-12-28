@@ -1,7 +1,4 @@
-// ==============================
-// File: dms/client/src/pages/admin/Dashboard.jsx
-// Replace previous Dashboard.jsx with this version (uses real endpoints)
-// ==============================
+// dms/client/src/pages/admin/Dashboard.jsx
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
@@ -31,6 +28,7 @@ export default function Dashboard() {
   const [data, setData] = React.useState({});
   const [monthly, setMonthly] = React.useState({ months: [], totals: [] });
   const [payment, setPayment] = React.useState({ labels: [], values: [] });
+  const [counts, setCounts] = React.useState({ today:{revenue:0,count:0}, thisWeek:{revenue:0,count:0}, thisMonth:{revenue:0,count:0} });
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [theme, setTheme] = React.useState(() => localStorage.getItem('dms_theme') || 'light');
 
@@ -44,14 +42,16 @@ export default function Dashboard() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [dash, monthlyRes, payRes] = await Promise.all([
+      const [dash, monthlyRes, payRes, countsRes] = await Promise.all([
         apiClient.api('/api/reports/dashboard'),
         apiClient.api('/api/reports/monthly'),
-        apiClient.api('/api/reports/payment-breakdown')
+        apiClient.api('/api/reports/payment-breakdown'),
+        apiClient.api('/api/reports/counts')
       ]);
       setData(dash || {});
       setMonthly(monthlyRes || { months: [], totals: [] });
       setPayment(payRes || { labels: [], values: [] });
+      setCounts(countsRes || counts);
     } catch (err) {
       console.error('dashboard load error', err);
     } finally { setLoading(false); }
@@ -91,6 +91,27 @@ export default function Dashboard() {
             <div style={{ fontSize:13, color:'#6b7280' }}>Dashboard</div>
           </div>
         </div>
+
+        {/* small counts row (mobile-first single column -> grid auto) */}
+        <section style={{ marginBottom:12 }}>
+          <div style={{ display:'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap:12 }}>
+            <div className="card stat-card">
+              <div style={{ fontSize:13, color:'#6b7280' }}>Today</div>
+              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.today.revenue||0).toLocaleString()} TZS</div>
+              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.today.count || 0} transactions</div>
+            </div>
+            <div className="card stat-card">
+              <div style={{ fontSize:13, color:'#6b7280' }}>This Week</div>
+              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.thisWeek.revenue||0).toLocaleString()} TZS</div>
+              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.thisWeek.count || 0} transactions</div>
+            </div>
+            <div className="card stat-card">
+              <div style={{ fontSize:13, color:'#6b7280' }}>This Month</div>
+              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.thisMonth.revenue||0).toLocaleString()} TZS</div>
+              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.thisMonth.count || 0} transactions</div>
+            </div>
+          </div>
+        </section>
 
         <section style={{ marginBottom:12 }}>
           <div style={{ display:'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap:12 }}>
