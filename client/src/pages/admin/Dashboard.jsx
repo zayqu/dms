@@ -28,7 +28,11 @@ export default function Dashboard() {
   const [data, setData] = React.useState({});
   const [monthly, setMonthly] = React.useState({ months: [], totals: [] });
   const [payment, setPayment] = React.useState({ labels: [], values: [] });
-  const [counts, setCounts] = React.useState({ today:{revenue:0,count:0}, thisWeek:{revenue:0,count:0}, thisMonth:{revenue:0,count:0} });
+  const [counts, setCounts] = React.useState({
+    today: { revenue: 0, count: 0 },
+    thisWeek: { revenue: 0, count: 0 },
+    thisMonth: { revenue: 0, count: 0 }
+  });
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [theme, setTheme] = React.useState(() => localStorage.getItem('dms_theme') || 'light');
 
@@ -80,96 +84,95 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <Topbar onToggleSidebar={() => setSidebarOpen(true)} onThemeToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} theme={theme} />
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onNavigate={(r) => { console.log('navigate', r); setSidebarOpen(false); }} />
-      <div style={{ padding: 12, paddingLeft: 16, paddingRight: 16, marginTop: 8 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-          <img src={LOGO_URL} alt="logo" style={{ width:48, height:48, borderRadius:8, objectFit:'cover' }} />
+    <div className="dashboard" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <Topbar
+        onToggleSidebar={() => setSidebarOpen(true)}
+        onThemeToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+        theme={theme}
+      />
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onNavigate={(r) => { console.log('navigate', r); setSidebarOpen(false); }}
+      />
+
+      <main className="px-4 py-3 md:px-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <img src={LOGO_URL} alt="logo" className="w-12 h-12 rounded-lg object-cover" />
           <div>
-            <div style={{ fontSize:18, fontWeight:700, color:'var(--navy)' }}>Daraja Management Software</div>
-            <div style={{ fontSize:13, color:'#6b7280' }}>Dashboard</div>
+            <h1 className="text-lg md:text-xl font-bold text-navy">Daraja Management Software</h1>
+            <p className="text-sm text-gray-500">Dashboard</p>
           </div>
         </div>
 
-        {/* small counts row (mobile-first single column -> grid auto) */}
-        <section style={{ marginBottom:12 }}>
-          <div style={{ display:'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap:12 }}>
-            <div className="card stat-card">
-              <div style={{ fontSize:13, color:'#6b7280' }}>Today</div>
-              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.today.revenue||0).toLocaleString()} TZS</div>
-              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.today.count || 0} transactions</div>
+        {/* Small counts - responsive grid */}
+        <section className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {['today', 'thisWeek', 'thisMonth'].map(period => (
+            <div key={period} className="card stat-card p-3">
+              <p className="text-xs text-gray-500 capitalize">{period.replace(/([A-Z])/g, ' $1')}</p>
+              <p className="text-lg font-bold">{Number(counts[period].revenue || 0).toLocaleString()} TZS</p>
+              <p className="text-xs text-gray-500">{counts[period].count || 0} transactions</p>
             </div>
-            <div className="card stat-card">
-              <div style={{ fontSize:13, color:'#6b7280' }}>This Week</div>
-              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.thisWeek.revenue||0).toLocaleString()} TZS</div>
-              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.thisWeek.count || 0} transactions</div>
-            </div>
-            <div className="card stat-card">
-              <div style={{ fontSize:13, color:'#6b7280' }}>This Month</div>
-              <div style={{ fontSize:18, fontWeight:700 }}>{Number(counts.thisMonth.revenue||0).toLocaleString()} TZS</div>
-              <div style={{ fontSize:13, color:'#6b7280' }}>{counts.thisMonth.count || 0} transactions</div>
-            </div>
-          </div>
+          ))}
         </section>
 
-        <section style={{ marginBottom:12 }}>
-          <div style={{ display:'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap:12 }}>
-            <StatCard title="Revenue" value={`${Number(data.revenue || 0).toLocaleString()} TZS`} sub="Total revenue" icon="₮" color="#17C0C8" />
-            <StatCard title="Net Profit" value={`${Number(data.netProfit || 0).toLocaleString()} TZS`} sub={`Net margin ${Number(data.netProfitMargin || 0).toFixed(2)}%`} icon="±" color="#0E2B37" />
-            <StatCard title="Inventory value" value={`${Number(data.inventoryValue || 0).toLocaleString()} TZS`} sub={`${data.productCount || 0} products`} icon="📦" color="#60A5FA" />
-            <StatCard title="Expenses" value={`${Number(data.totalExpenses || 0).toLocaleString()} TZS`} sub="Total expenses" icon="💸" color="#F59E0B" />
-          </div>
+        {/* Main stat cards */}
+        <section className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard title="Revenue" value={`${Number(data.revenue || 0).toLocaleString()} TZS`} sub="Total revenue" icon="₮" color="#17C0C8" />
+          <StatCard title="Net Profit" value={`${Number(data.netProfit || 0).toLocaleString()} TZS`} sub={`Net margin ${Number(data.netProfitMargin || 0).toFixed(2)}%`} icon="±" color="#0E2B37" />
+          <StatCard title="Inventory Value" value={`${Number(data.inventoryValue || 0).toLocaleString()} TZS`} sub={`${data.productCount || 0} products`} icon="📦" color="#60A5FA" />
+          <StatCard title="Expenses" value={`${Number(data.totalExpenses || 0).toLocaleString()} TZS`} sub="Total expenses" icon="💸" color="#F59E0B" />
         </section>
 
-        <section style={{ display:'grid', gap:12 }}>
-          <div className="card" style={{ paddingBottom:8 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-              <div style={{ fontWeight:700 }}>Monthly Revenue</div>
-              <div style={{ fontSize:12, color:'#6b7280' }}>{loading ? 'Loading…' : 'Last 12 months'}</div>
+        {/* Charts and quick stats */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="card p-3">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="font-bold">Monthly Revenue</h2>
+              <p className="text-xs text-gray-500">{loading ? 'Loading…' : 'Last 12 months'}</p>
             </div>
-            <div style={{ height: 240 }}>
+            <div className="h-60">
               <Line data={lineData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false } }}} />
             </div>
           </div>
 
-          <div style={{ display:'grid', gridTemplateColumns: '1fr', gap:12 }}>
-            <div className="card" style={{ paddingBottom:14 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <div style={{ fontWeight:700 }}>Payment Methods</div>
-                <div style={{ fontSize:12, color:'#6b7280' }}>Distribution</div>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="card p-3">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="font-bold">Payment Methods</h2>
+                <p className="text-xs text-gray-500">Distribution</p>
               </div>
-              <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
-                <div style={{ flex:'1 1 260px', height:180 }}>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex-1 min-w-[200px] h-44">
                   <Pie data={pieData} options={{ maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } }}} />
                 </div>
-                <div style={{ flex:'1 1 160px' }}>
-                  <div style={{ fontWeight:700, marginBottom:8 }}>Quick stats</div>
-                  <div style={{ fontSize:14, color:'#374151' }}>Revenue: <strong>{Number(data.revenue||0).toLocaleString()} TZS</strong></div>
-                  <div style={{ fontSize:14, color:'#374151' }}>Net Profit: <strong>{Number(data.netProfit||0).toLocaleString()} TZS</strong></div>
-                  <div style={{ fontSize:14, color:'#374151' }}>Inventory: <strong>{Number(data.inventoryValue||0).toLocaleString()} TZS</strong></div>
+                <div className="flex-1 min-w-[150px]">
+                  <h3 className="font-bold mb-1">Quick Stats</h3>
+                  <p className="text-sm text-gray-700">Revenue: <strong>{Number(data.revenue||0).toLocaleString()} TZS</strong></p>
+                  <p className="text-sm text-gray-700">Net Profit: <strong>{Number(data.netProfit||0).toLocaleString()} TZS</strong></p>
+                  <p className="text-sm text-gray-700">Inventory: <strong>{Number(data.inventoryValue||0).toLocaleString()} TZS</strong></p>
                 </div>
               </div>
             </div>
 
-            <div className="card">
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <div style={{ fontWeight:700 }}>Recent Alerts</div>
-                <div style={{ fontSize:12, color:'#6b7280' }}>Stock & system</div>
+            <div className="card p-3">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="font-bold">Recent Alerts</h2>
+                <p className="text-xs text-gray-500">Stock & system</p>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div style={{ padding:8, background:'#fff', borderRadius:8, border:'1px solid #eef2f7' }}>
-                  <div style={{ fontSize:13 }}>Low stock: Beer Crate 24x330ml (200 left)</div>
+              <div className="flex flex-col gap-2">
+                <div className="p-2 bg-white border border-gray-200 rounded">
+                  <p className="text-xs">Low stock: Beer Crate 24x330ml (200 left)</p>
                 </div>
-                <div style={{ padding:8, background:'#fff', borderRadius:8, border:'1px solid #eef2f7' }}>
-                  <div style={{ fontSize:13 }}>Unpaid invoices: 0</div>
+                <div className="p-2 bg-white border border-gray-200 rounded">
+                  <p className="text-xs">Unpaid invoices: 0</p>
                 </div>
               </div>
             </div>
-
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 }
