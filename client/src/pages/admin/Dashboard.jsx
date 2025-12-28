@@ -1,9 +1,14 @@
-// File: client/src/pages/admin/Dashboard.jsx
+// ==============================
+// File: dms/client/src/pages/admin/Dashboard.jsx
+// Replace previous Dashboard.jsx with this version (uses real endpoints)
+// ==============================
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
 import apiClient from '../../services/api';
 import { Line, Pie } from 'react-chartjs-2';
+import Topbar from '../../components/Topbar';
+import Sidebar from '../../components/Sidebar';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,83 +23,75 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
-const LOGO_URL = '/mnt/data/5697523f-fcbf-4cd0-9c4c-923045e7f52d.png'; // local logo path you supplied
+const LOGO_URL = '/mnt/data/5697523f-fcbf-4cd0-9c4c-923045e7f52d.png';
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const [loading, setLoading] = React.useState(true);
-  const [data, setData] = React.useState({
-    revenue: 0, cogs: 0, totalExpenses: 0, netProfit: 0, netProfitMargin: 0, inventoryValue: 0, productCount: 0
-  });
-  const [monthlySeries, setMonthlySeries] = React.useState({ labels: [], values: [] });
-  const [paymentBreakdown, setPaymentBreakdown] = React.useState({ labels: [], values: [] });
+  const [data, setData] = React.useState({});
+  const [monthly, setMonthly] = React.useState({ months: [], totals: [] });
+  const [payment, setPayment] = React.useState({ labels: [], values: [] });
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [theme, setTheme] = React.useState(() => localStorage.getItem('dms_theme') || 'light');
 
   React.useEffect(() => {
-    load();
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('dms_theme', theme);
+  }, [theme]);
 
-  async function load() {
+  React.useEffect(() => { loadAll(); }, []);
+
+  async function loadAll() {
     setLoading(true);
     try {
-      const res = await apiClient.api('/api/reports/dashboard');
-      setData(res);
-      // for demo: build placeholder monthly data and payment breakdown
-      // In future we will provide endpoints returning real monthly and payment breakdown arrays.
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      // Simple fake series: spread revenue across months if revenue exists, else zeros
-      const baseRevenue = Number(res.revenue || 0);
-      const monthly = months.map((m,i) => Math.round(baseRevenue * ( (i+1)/12 ) * 0.08 )); // demo synthetic
-      setMonthlySeries({ labels: months, values: monthly });
-      // payment breakdown placeholder (if you extend the API, replace)
-      setPaymentBreakdown({
-        labels: ['Cash', 'Mpesa', 'Airtel', 'Other'],
-        values: [Math.round(baseRevenue*0.4), Math.round(baseRevenue*0.45), Math.round(baseRevenue*0.1), Math.round(baseRevenue*0.05)]
-      });
+      const [dash, monthlyRes, payRes] = await Promise.all([
+        apiClient.api('/api/reports/dashboard'),
+        apiClient.api('/api/reports/monthly'),
+        apiClient.api('/api/reports/payment-breakdown')
+      ]);
+      setData(dash || {});
+      setMonthly(monthlyRes || { months: [], totals: [] });
+      setPayment(payRes || { labels: [], values: [] });
     } catch (err) {
       console.error('dashboard load error', err);
-      // keep defaults
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   const lineData = {
-    labels: monthlySeries.labels,
+    labels: monthly.months || [],
     datasets: [
       {
         label: 'Revenue (TZS)',
-        data: monthlySeries.values,
+        data: monthly.totals || [],
         borderColor: '#0E2B37',
         backgroundColor: '#17C0C822',
-        tension: 0.3,
-        fill: true,
+        tension: 0.25,
+        fill: true
       }
     ]
   };
 
   const pieData = {
-    labels: paymentBreakdown.labels,
+    labels: payment.labels || [],
     datasets: [{
-      data: paymentBreakdown.values,
+      data: payment.values || [],
       backgroundColor: ['#17C0C8', '#0E2B37', '#60A5FA', '#F59E0B']
     }]
   };
 
   return (
-    <div style={{ padding: 12, paddingBottom: 80 }}>
-      <header style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-        <img src={LOGO_URL} alt="DMS" style={{ width:48, height:48, borderRadius:8, objectFit:'cover', boxShadow:'0 2px 8px rgba(0,0,0,0.08)' }} />
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:18, fontWeight:700, color:'#0e2b37' }}>Daraja Management Software</div>
-          <div style={{ fontSize:13, color:'#6b7280' }}>Dashboard</div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <Topbar onToggleSidebar={() => setSidebarOpen(true)} onThemeToggle={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} theme={theme} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onNavigate={(r) => { console.log('navigate', r); setSidebarOpen(false); }} />
+      <div style={{ padding: 12, paddingLeft: 16, paddingRight: 16, marginTop: 8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+          <img src={LOGO_URL} alt="logo" style={{ width:48, height:48, borderRadius:8, objectFit:'cover' }} />
+          <div>
+            <div style={{ fontSize:18, fontWeight:700, color:'var(--navy)' }}>Daraja Management Software</div>
+            <div style={{ fontSize:13, color:'#6b7280' }}>Dashboard</div>
+          </div>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button className="btn" onClick={() => { /* toggle theme placeholder*/ }} style={{ background:'#0E2B37' }}>Dark</button>
-          <button className="btn" onClick={() => window.location.reload()}>Refresh</button>
-        </div>
-      </header>
 
-      <main>
         <section style={{ marginBottom:12 }}>
           <div style={{ display:'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap:12 }}>
             <StatCard title="Revenue" value={`${Number(data.revenue || 0).toLocaleString()} TZS`} sub="Total revenue" icon="₮" color="#17C0C8" />
@@ -104,13 +101,13 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section style={{ display:'grid', gridTemplateColumns: '1fr', gap:12 }}>
-          <div className="card">
+        <section style={{ display:'grid', gap:12 }}>
+          <div className="card" style={{ paddingBottom:8 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
               <div style={{ fontWeight:700 }}>Monthly Revenue</div>
               <div style={{ fontSize:12, color:'#6b7280' }}>{loading ? 'Loading…' : 'Last 12 months'}</div>
             </div>
-            <div style={{ height: 220 }}>
+            <div style={{ height: 240 }}>
               <Line data={lineData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false } }}} />
             </div>
           </div>
@@ -122,7 +119,7 @@ export default function Dashboard() {
                 <div style={{ fontSize:12, color:'#6b7280' }}>Distribution</div>
               </div>
               <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
-                <div style={{ flex:'1 1 240px', height:160 }}>
+                <div style={{ flex:'1 1 260px', height:180 }}>
                   <Pie data={pieData} options={{ maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } }}} />
                 </div>
                 <div style={{ flex:'1 1 160px' }}>
@@ -151,7 +148,7 @@ export default function Dashboard() {
 
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

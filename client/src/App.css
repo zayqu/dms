@@ -22,3 +22,46 @@ body{ margin:0; font-family:Inter,Arial,Helvetica,sans-serif; background:var(--b
   .stat-card { padding:10px; }
   /* the grid on Dashboard.jsx uses inline CSS grid so it will respond automatically */
 }
+
+/* ==============================
+   File: dms/client/src/App.css
+   Append these styles to end of file
+   ============================== */
+
+:root {
+  --brand: #17C0C8;
+  --navy: #0E2B37;
+  --bg: #fbfcfd;
+  --text: #0f1720;
+}
+
+/* dark theme */
+html[data-theme="dark"] {
+  --brand: #17C0C8;
+  --navy: #0E2B37;
+  --bg: #071019;
+  --text: #e6eef2;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* containers */
+.card { background: var(--bg); border-radius:10px; padding:12px; box-shadow: 0 8px 20px rgba(2,6,23,0.06); }
+.stat-card { padding:12px; border-radius:10px; background: var(--bg); }
+
+/* buttons (simple) */
+.btn {
+  border: none;
+  padding:8px 10px;
+  border-radius:8px;
+  background: var(--navy);
+  color: white;
+  cursor:pointer;
+}
+
+/* sidebar adjustments for small screens: push content right when open handled inline via left position */
+/* responsive grid fallback */
+@media (max-width: 640px) {
+  /* stack stat cards single column on small screens */
+  .stat-card { padding:10px; }
+}
