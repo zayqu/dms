@@ -1,13 +1,14 @@
-// server/src/models/Product.js
 const mongoose = require('mongoose');
+const S = mongoose.Schema;
 
-const ProductSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  baseUnit: { type: mongoose.Schema.Types.ObjectId, ref: 'Unit', required: true }, // smallest unit
-  costPrice: { type: Number, required: true },
-  sellingPrice: { type: Number, required: true },
-  active: { type: Boolean, default: true },
+const ProductSchema = new S({
+  tenantId: { type: S.Types.ObjectId, ref: 'Tenant', required: true },
+  name: { type: String, required: true },
+  sku: { type: String },
+  categoryId: { type: S.Types.ObjectId, ref: 'Category' },
+  isActive: { type: Boolean, default: true },
+  trackStock: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', ProductSchema);
