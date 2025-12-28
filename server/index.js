@@ -22,6 +22,9 @@ app.use('/api/units', require('./src/routes/units'));
 app.use('/api/products', require('./src/routes/products'));
 app.use('/api/product-units', require('./src/routes/productUnits'));
 app.use('/api/opening-stock', require('./src/routes/openingStock'));
+app.use('/api/purchases', require('./src/routes/purchases'));
+app.use('/api/sales', require('./src/routes/sales'));
+app.use('/api/payments', require('./src/routes/payments'));
 
 /**
  * REPORTS & DASHBOARD
