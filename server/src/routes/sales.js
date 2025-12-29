@@ -17,7 +17,7 @@ router.post(
   '/',
   auth,
   tenantGuard,
-  requireRole(['owner','admin','seller']),
+  requireRole(['owner', 'admin', 'seller']),
   async (req, res) => {
     try {
       const {
@@ -45,7 +45,6 @@ router.post(
           return res.status(404).json({ error: 'Product not found' });
         }
 
-        // calculate available stock
         const ledger = await StockLedger.aggregate([
           { $match: { tenantId: req.tenantId, productId: product._id } },
           {
@@ -57,8 +56,7 @@ router.post(
           }
         ]);
 
-        const available =
-          (ledger[0]?.in || 0) - (ledger[0]?.out || 0);
+        const available = (ledger[0]?.in || 0) - (ledger[0]?.out || 0);
 
         if (available < item.qty) {
           return res.status(400).json({
@@ -69,13 +67,14 @@ router.post(
         total += item.qty * item.unitPrice;
       }
 
-      const sale = await Transaction.create({
+      // ✅ CREATE SALE (NO Transaction)
+      const sale = await Sale.create({
         tenantId: req.tenantId,
-        type: 'sale',
         items,
         total,
         paymentMethod,
-        reference: customerName || 'POS',
+        paidAmount,
+        customerName,
         createdBy: req.userId,
         date: saleDate || new Date()
       });
@@ -114,11 +113,10 @@ router.get(
   '/',
   auth,
   tenantGuard,
-  requireRole(['owner','admin']),
+  requireRole(['owner', 'admin']),
   async (req, res) => {
-    const list = await Transaction.find({
-      tenantId: req.tenantId,
-      type: 'sale'
+    const list = await Sale.find({
+      tenantId: req.tenantId
     }).sort({ createdAt: -1 });
 
     res.json(list);
