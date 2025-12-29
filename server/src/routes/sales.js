@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const tenantGuard = require('../middleware/tenantGuard');
 const requireRole = require('../middleware/requireRole');
 
-const Transaction = require('../models/Transaction');
+const Sale = require('../models/Sale');
 const StockLedger = require('../models/StockLedger');
 const Product = require('../models/Product');
 
