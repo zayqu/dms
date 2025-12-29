@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 const tenantGuard = require('../middleware/tenantGuard');
 const requireRole = require('../middleware/requireRole');
 
-const Transaction = require('../models/Transaction');
+const Sale = require('../models/Sale');
 const Expense = require('../models/Expense');
 const Product = require('../models/Product');
 const StockLedger = require('../models/StockLedger');
@@ -17,7 +17,7 @@ router.get('/dashboard', auth, tenantGuard, requireRole(['owner','admin','seller
     const tenantId = req.tenantId;
 
     // Revenue & profit
-    const sales = await Transaction.find({ tenantId, type: 'sale' });
+    const sales = await Sale.find({ tenantId });
     const totalRevenue = sales.reduce((acc, s) => acc + (s.total || 0), 0);
 
     const expenses = await Expense.find({ tenantId });

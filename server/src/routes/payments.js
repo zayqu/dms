@@ -5,11 +5,11 @@ const auth = require('../middleware/auth');
 const tenantGuard = require('../middleware/tenantGuard');
 const requireRole = require('../middleware/requireRole');
 
-const Transaction = require('../models/Transaction');
+const Sale = require('../models/Sale');
 const Payment = require('../models/Payment');
 
 /**
- * Record payment for a transaction
+ * Record payment for a sale
  * POST /api/payments
  */
 router.post(
@@ -19,23 +19,23 @@ router.post(
   requireRole(['owner','admin','seller']),
   async (req, res) => {
     try {
-      const { transactionId, amount, method, reference, receiptUrl } = req.body;
+      const { saleId, amount, method, reference, receiptUrl } = req.body;
 
-      if (!transactionId || !amount || !method) {
+      if (!saleId || !amount || !method) {
         return res.status(400).json({ error: 'Missing fields' });
       }
 
-      const transaction = await Transaction.findById(transactionId);
-      if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+      const sale = await Sale.findOne({ _id: saleId, tenantId: req.tenantId });
+      if (!sale) return res.status(404).json({ error: 'Sale not found' });
 
-      const paidAmount = transaction.paidAmount || 0;
-      transaction.paidAmount = paidAmount + Number(amount);
-      transaction.balance = transaction.total - transaction.paidAmount;
-      await transaction.save();
+      const paidAmount = sale.paidAmount || 0;
+      sale.paidAmount = paidAmount + Number(amount);
+      sale.balance = sale.total - sale.paidAmount;
+      await sale.save();
 
       const payment = await Payment.create({
         tenantId: req.tenantId,
-        transactionId,
+        saleId,
         amount,
         method,
         reference,
@@ -47,7 +47,7 @@ router.post(
       res.status(201).json({
         message: 'Payment recorded',
         payment,
-        transaction
+        sale
       });
     } catch (err) {
       console.error('payment error', err);

@@ -6,7 +6,7 @@ const requireRole = require('../middleware/requireRole');
 const tenantGuard = require('../middleware/tenantGuard');
 
 const User = require('../models/User');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 /**
  * LIST USERS
