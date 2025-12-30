@@ -8,7 +8,6 @@
     "seed": "node src/tools/seed.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
