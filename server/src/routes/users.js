@@ -6,7 +6,6 @@ const requireRole = require('../middleware/requireRole');
 const tenantGuard = require('../middleware/tenantGuard');
 
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 
 /**
  * LIST USERS
@@ -17,12 +16,17 @@ router.get(
   tenantGuard,
   requireRole(['owner', 'admin']),
   async (req, res) => {
-    const users = await User.find({
-      tenantId: req.tenantId,
-      isActive: { $ne: false }
-    }).select('-passwordHash');
+    try {
+      const users = await User.find({
+        location: req.locationId,
+        status: 'active'
+      });
 
-    res.json(users);
+      res.json(users);
+
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 );
 
@@ -35,32 +39,32 @@ router.post(
   tenantGuard,
   requireRole(['owner', 'admin']),
   async (req, res) => {
-    const { name, email, password, role = 'seller', language = 'en' } = req.body;
+    try {
+      const { name, email, password, role, phone } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Name and email required' });
+      if (!name || !email || !password || !role || !phone) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const exists = await User.findOne({ email });
+      if (exists) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+
+      const user = await User.create({
+        name,
+        email,
+        password,
+        role,
+        phone,
+        location: req.locationId
+      });
+
+      res.status(201).json({ user });
+
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
-
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email exists' });
-
-    const generatedPassword =
-      password || Math.random().toString(36).slice(-8) + 'A1';
-
-    const passwordHash = await bcrypt.hash(generatedPassword, 10);
-
-    const user = await User.create({
-      name,
-      email,
-      passwordHash,
-      role,
-      language,
-      tenantId: req.tenantId
-    });
-
-    res.status(201).json({
-      user: { ...user.toObject(), password: password ? undefined : generatedPassword }
-    });
   }
 );
 
@@ -73,17 +77,31 @@ router.patch(
   tenantGuard,
   requireRole(['owner', 'admin']),
   async (req, res) => {
-    const { id } = req.params;
-    const { role, isActive } = req.body;
+    try {
+      const { id } = req.params;
+      const { role, status, phone, name } = req.body;
 
-    const user = await User.findOne({ _id: id, tenantId: req.tenantId });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+      const user = await User.findOne({
+        _id: id,
+        location: req.locationId
+      });
 
-    if (role) user.role = role;
-    if (typeof isActive === 'boolean') user.isActive = isActive;
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-    await user.save();
-    res.json({ user });
+      if (role) user.role = role;
+      if (status) user.status = status;
+      if (phone) user.phone = phone;
+      if (name) user.name = name;
+
+      await user.save();
+
+      res.json({ user });
+
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 );
 
@@ -96,17 +114,24 @@ router.delete(
   tenantGuard,
   requireRole(['owner']),
   async (req, res) => {
-    const user = await User.findOne({
-      _id: req.params.id,
-      tenantId: req.tenantId
-    });
+    try {
+      const user = await User.findOne({
+        _id: req.params.id,
+        location: req.locationId
+      });
 
-    if (!user) return res.status(404).json({ error: 'User not found' });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-    user.isActive = false;
-    await user.save();
+      user.status = 'disabled';
+      await user.save();
 
-    res.json({ message: 'User deactivated' });
+      res.json({ message: 'User disabled' });
+
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 );
 
