@@ -11,7 +11,7 @@ import './App.css';
 
 export default function App(){
   const { t } = useTranslation();
-  const [user,setUser] = React.useState(()=> { try { return JSON.parse(localStorage.getItem('user')||'null'); } catch { return null; }});
+  const [user, setUser] = React.useState(null);
   const [route, setRoute] = React.useState('sales');
 
   if (!user) return <Login onLogin={(u)=>{ setUser(u); localStorage.setItem('user', JSON.stringify(u)); }} />;

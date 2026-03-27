@@ -1,44 +1,65 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const express = require('express');
+const router = express.Router();
 
-const Tenant = require('../models/Tenant');
-const User = require('../models/User');
-const Product = require('../models/Product');
+const auth = require('../middleware/auth');
+const tenantGuard = require('../middleware/tenantGuard');
+const requireRole = require('../middleware/requireRole');
+
+const Sale = require('../models/Sale');
+const Payment = require('../models/Payment');
 const Expense = require('../models/Expense');
+const Product = require('../models/Product');
+const StockLedger = require('../models/StockLedger');
 
-async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI);
+router.get(
+  '/finance',
+  auth,
+  tenantGuard,
+  requireRole(['owner','admin']),
+  async (req, res) => {
+    try {
+      const tenantId = req.tenantId;
 
-  await Tenant.deleteMany();
-  await User.deleteMany();
-  await Product.deleteMany();
-  await Expense.deleteMany();
+      // Revenue
+      const sales = await Sale.find({ tenantId });
+      const revenue = sales.reduce((a, s) => a + s.total, 0);
 
-  const tenant = await Tenant.create({ name: 'DMS Demo', plan: 'trial' });
+      // Cash received
+      const payments = await Payment.find({ tenantId });
+      const cash = payments.reduce((a, p) => a + p.amount, 0);
 
-  const hash = await bcrypt.hash('Daraja123!', 10);
-  const owner = await User.create({
-    name: 'Owner Demo',
-    email: 'owner@dms.local',
-    passwordHash: hash,
-    role: 'owner',
-    tenantId: tenant._id
-  });
+      // Expenses
+      const expenses = await Expense.find({ tenantId });
+      const totalExpenses = expenses.reduce((a, e) => a + e.amount, 0);
 
-  await Product.insertMany([
-    { tenantId: tenant._id, name: 'Water 500ml', buyPrice: 400, sellPrice: 700 },
-    { tenantId: tenant._id, name: 'Soda 330ml', buyPrice: 600, sellPrice: 1000 }
-  ]);
+      // Inventory value
+      const products = await Product.find({ tenantId });
+      let inventoryValue = 0;
 
-  await Expense.create({
-    tenantId: tenant._id,
-    description: 'Fuel',
-    amount: 12000,
-    createdBy: owner._id
-  });
+      for (const p of products) {
+        const ledger = await StockLedger.aggregate([
+          { $match: { tenantId, productId: p._id } },
+          { $group: { _id: null, in: { $sum: '$quantityIn' }, out: { $sum: '$quantityOut' } } }
+        ]);
+        const available = (ledger[0]?.in || 0) - (ledger[0]?.out || 0);
+        inventoryValue += available * (p.buyPrice || 0);
+      }
 
-  console.log('Seed done');
-  process.exit();
-}
+      const grossProfit = revenue - inventoryValue;
+      const netProfit = grossProfit - totalExpenses;
 
-seed();
+      res.json({
+        revenue,
+        cash,
+        expenses: totalExpenses,
+        inventoryValue,
+        grossProfit,
+        netProfit
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+module.exports = router;
